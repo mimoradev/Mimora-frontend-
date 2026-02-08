@@ -4,9 +4,7 @@ import PhoneInput from '../PhoneInput';
 import OTPInput from '../OTPInput';
 import PrimaryButton from '../PrimaryButton';
 import SecondaryButton, { EmailIcon, GoogleIcon } from '../SecondaryButton';
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { auth } from '@/firebase';
-import { authService } from '@/services/authService';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Phone Icon for secondary button
 const PhoneIcon = () => (
@@ -91,9 +89,20 @@ const CustomerSignupView: React.FC<CustomerSignupViewProps> = ({
     onPhoneChange,
     onOtpChange,
     onEmailChange,
-    onSubmit,
     onLoginClick,
 }) => {
+    // Use shared AuthContext for all authentication methods
+    const {
+        loginWithGoogle,
+        sendPhoneOTP,
+        verifyPhoneOTP,
+        sendEmailOTP,
+        verifyEmailOTP,
+        isLoading,
+        error,
+        clearError,
+    } = useAuth();
+
     const [signupMode, setSignupMode] = useState<SignupMode>('phone');
     const [localEmail, setLocalEmail] = useState(email);
     const [touched, setTouched] = useState({
@@ -105,8 +114,6 @@ const CustomerSignupView: React.FC<CustomerSignupViewProps> = ({
     const [otpSent, setOtpSent] = useState(false);
     const [timer, setTimer] = useState(30);
     const [canResend, setCanResend] = useState(false);
-    const [googleLoading, setGoogleLoading] = useState(false);
-    const [googleError, setGoogleError] = useState<string | null>(null);
     const timerRef = useRef<number | null>(null);
 
     // Get validation errors
@@ -124,79 +131,10 @@ const CustomerSignupView: React.FC<CustomerSignupViewProps> = ({
     const isOtpComplete = otp.join('').length === 6;
     const isOtpValid = !validateOtp(otp);
 
-    // Google Sign In Handler with Backend Integration
-    const handleGoogleSignIn = useCallback(async () => {
-        console.log('🔴 STEP 1: Button clicked');
-        setGoogleLoading(true);
-        setGoogleError(null);
-
-        try {
-            console.log('🔴 STEP 2: Auth object exists?', !!auth);
-            console.log('🔴 STEP 3: Creating provider...');
-
-            const provider = new GoogleAuthProvider();
-            provider.addScope('profile');
-            provider.addScope('email');
-            console.log('🔴 STEP 4: Provider created');
-
-            console.log('🔴 STEP 5: Calling signInWithPopup NOW...');
-            const result = await signInWithPopup(auth, provider);
-
-            console.log('🔴 STEP 6: Popup worked! User:', result.user.email);
-            console.log('🔴 STEP 7: User data:', {
-                uid: result.user.uid,
-                email: result.user.email,
-                displayName: result.user.displayName,
-            });
-
-            // Get Firebase token
-            console.log('🔴 STEP 8: Getting Firebase token...');
-            const firebaseToken = await result.user.getIdToken();
-            console.log('🔴 STEP 9: Token received:', firebaseToken.substring(0, 20) + '...');
-
-            // Send to backend
-            console.log('🔴 STEP 10: Sending to backend...');
-            const user = await authService.authenticateWithOAuth(firebaseToken);
-            console.log('🔴 STEP 11: Backend response:', user);
-
-            // Save user data to localStorage
-            localStorage.setItem('user', JSON.stringify(user));
-            localStorage.setItem('firebaseToken', firebaseToken);
-
-            console.log('✅ SUCCESS! User authenticated:', user);
-            alert(`Welcome, ${user.name || user.email}! 🎉`);
-
-            // TODO: Navigate to home page
-            // window.location.href = '/home';
-
-        } catch (error: any) {
-            console.error('❌ ERROR occurred:', error);
-            console.error('❌ Error code:', error.code);
-            console.error('❌ Error message:', error.message);
-
-            let errorMessage = 'Failed to sign in with Google';
-
-            if (error.code === 'auth/popup-closed-by-user') {
-                errorMessage = 'Sign-in cancelled';
-            } else if (error.code === 'auth/popup-blocked') {
-                errorMessage = 'Popup blocked. Please allow popups for this site';
-            } else if (error.code === 'auth/unauthorized-domain') {
-                errorMessage = 'This domain is not authorized. Please add it to Firebase Console.';
-            } else if (error.message) {
-                errorMessage = error.message;
-            }
-
-            setGoogleError(errorMessage);
-            alert(`Error: ${errorMessage}`);
-        } finally {
-            setGoogleLoading(false);
-        }
-    }, []);
-
     // Timer effect
     useEffect(() => {
         if (otpSent && timer > 0) {
-            timerRef.current = setTimeout(() => {
+            timerRef.current = window.setTimeout(() => {
                 setTimer(prev => prev - 1);
             }, 1000);
         } else if (timer === 0) {
@@ -209,6 +147,13 @@ const CustomerSignupView: React.FC<CustomerSignupViewProps> = ({
             }
         };
     }, [otpSent, timer]);
+
+    // Clear error when user starts typing
+    useEffect(() => {
+        if (error) {
+            clearError();
+        }
+    }, [fullName, phone, localEmail, otp, clearError, error]);
 
     const handleFullNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         onFullNameChange(e.target.value);
@@ -240,41 +185,79 @@ const CustomerSignupView: React.FC<CustomerSignupViewProps> = ({
         setTouched(prev => ({ ...prev, otp: true }));
     }, [onOtpChange]);
 
-    const handleGetOtp = useCallback(() => {
+    // Send OTP via AuthContext
+    const handleGetOtp = useCallback(async () => {
         if (signupMode === 'phone') {
             setTouched(prev => ({ ...prev, fullName: true, phone: true }));
         } else {
             setTouched(prev => ({ ...prev, fullName: true, email: true }));
         }
 
-        if (isFormValid) {
+        if (!isFormValid) return;
+
+        try {
+            if (signupMode === 'phone') {
+                // Send Phone OTP via Firebase + Backend
+                const fullPhoneNumber = `${countryCode}${phone}`;
+                await sendPhoneOTP(fullPhoneNumber);
+            } else {
+                // Send Email OTP via Backend
+                await sendEmailOTP(localEmail, fullName.trim());
+            }
             setOtpSent(true);
             setTimer(30);
             setCanResend(false);
-            onSubmit();
+        } catch (err) {
+            // Error is handled by AuthContext
+            console.error('Failed to send OTP:', err);
         }
-    }, [isFormValid, onSubmit, signupMode]);
+    }, [isFormValid, signupMode, countryCode, phone, localEmail, fullName, sendPhoneOTP, sendEmailOTP]);
 
-    const handleResendOtp = useCallback(() => {
-        if (canResend) {
+    // Resend OTP
+    const handleResendOtp = useCallback(async () => {
+        if (!canResend || isLoading) return;
+
+        try {
+            if (signupMode === 'phone') {
+                const fullPhoneNumber = `${countryCode}${phone}`;
+                await sendPhoneOTP(fullPhoneNumber);
+            } else {
+                await sendEmailOTP(localEmail, fullName.trim());
+            }
             setTimer(30);
             setCanResend(false);
             onOtpChange(['', '', '', '', '', '']);
             setTouched(prev => ({ ...prev, otp: false }));
-            onSubmit();
+        } catch (err) {
+            console.error('Failed to resend OTP:', err);
         }
-    }, [canResend, onOtpChange, onSubmit]);
+    }, [canResend, isLoading, signupMode, countryCode, phone, localEmail, fullName, sendPhoneOTP, sendEmailOTP, onOtpChange]);
 
-    const handleVerifyOtp = useCallback(() => {
+    // Verify OTP via AuthContext
+    const handleVerifyOtp = useCallback(async () => {
         setTouched(prev => ({ ...prev, otp: true }));
-        if (isOtpValid) {
-            onSubmit();
-        }
-    }, [isOtpValid, onSubmit]);
 
+        if (!isOtpValid || isLoading) return;
+
+        try {
+            const otpString = otp.join('');
+            if (signupMode === 'phone') {
+                // Verify Phone OTP - sends to backend with name
+                await verifyPhoneOTP(otpString, fullName.trim());
+            } else {
+                // Verify Email OTP
+                await verifyEmailOTP(localEmail, otpString);
+            }
+            // Success is handled by AuthContext (sets isAuthenticated = true)
+            // AuthPage will show reveal animation and redirect
+        } catch (err) {
+            console.error('Failed to verify OTP:', err);
+        }
+    }, [isOtpValid, isLoading, otp, signupMode, fullName, localEmail, verifyPhoneOTP, verifyEmailOTP]);
+
+    // Switch between phone and email mode
     const handleSwitchMode = useCallback((mode: SignupMode) => {
         setSignupMode(mode);
-        // Reset OTP state when switching modes
         setOtpSent(false);
         setTimer(30);
         setCanResend(false);
@@ -285,7 +268,8 @@ const CustomerSignupView: React.FC<CustomerSignupViewProps> = ({
             email: false,
             otp: false,
         });
-    }, [onOtpChange, touched.fullName]);
+        clearError();
+    }, [onOtpChange, touched.fullName, clearError]);
 
     const formatTimer = (seconds: number): string => {
         const mins = Math.floor(seconds / 60);
@@ -303,6 +287,13 @@ const CustomerSignupView: React.FC<CustomerSignupViewProps> = ({
                 Join Mimora to book trusted professionals.
             </p>
 
+            {/* Error Display from AuthContext */}
+            {error && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm text-red-600">{error}</p>
+                </div>
+            )}
+
             {/* Form */}
             <div className={otpSent ? 'space-y-2' : 'space-y-3'}>
                 <AuthInput
@@ -312,7 +303,7 @@ const CustomerSignupView: React.FC<CustomerSignupViewProps> = ({
                     onChange={handleFullNameChange}
                     onBlur={handleFullNameBlur}
                     error={fullNameError}
-                    disabled={otpSent}
+                    disabled={otpSent || isLoading}
                     compact={otpSent}
                 />
 
@@ -325,7 +316,7 @@ const CustomerSignupView: React.FC<CustomerSignupViewProps> = ({
                             onCountryCodeChange={onCountryCodeChange}
                             onPhoneNumberChange={handlePhoneChange}
                             error={!otpSent ? phoneError : undefined}
-                            disabled={otpSent}
+                            disabled={otpSent || isLoading}
                             compact={otpSent}
                         />
                     </div>
@@ -340,7 +331,7 @@ const CustomerSignupView: React.FC<CustomerSignupViewProps> = ({
                         onChange={handleEmailChange}
                         onBlur={handleEmailBlur}
                         error={!otpSent ? emailError : undefined}
-                        disabled={otpSent}
+                        disabled={otpSent || isLoading}
                         compact={otpSent}
                         type="email"
                     />
@@ -366,13 +357,13 @@ const CustomerSignupView: React.FC<CustomerSignupViewProps> = ({
                             </span>
                             <button
                                 onClick={handleResendOtp}
-                                disabled={!canResend}
-                                className={`text-xs font-medium underline transition-colors ${canResend
-                                    ? 'text-[#1E1E1E] hover:text-[#E91E63] cursor-pointer'
-                                    : 'text-gray-400 cursor-not-allowed'
+                                disabled={!canResend || isLoading}
+                                className={`text-xs font-medium underline transition-colors ${canResend && !isLoading
+                                        ? 'text-[#1E1E1E] hover:text-[#E91E63] cursor-pointer'
+                                        : 'text-gray-400 cursor-not-allowed'
                                     }`}
                             >
-                                Resend OTP
+                                {isLoading ? 'Sending...' : 'Resend OTP'}
                             </button>
                         </div>
                     </div>
@@ -382,12 +373,19 @@ const CustomerSignupView: React.FC<CustomerSignupViewProps> = ({
             {/* Create Account Button */}
             <div className={otpSent ? 'mt-2' : 'mt-4'}>
                 {!otpSent ? (
-                    <PrimaryButton onClick={handleGetOtp} disabled={!isFormValid}>
-                        Create account
+                    <PrimaryButton
+                        onClick={handleGetOtp}
+                        disabled={!isFormValid || isLoading}
+                    >
+                        {isLoading ? 'Sending OTP...' : 'Create account'}
                     </PrimaryButton>
                 ) : (
-                    <PrimaryButton onClick={handleVerifyOtp} disabled={!isOtpComplete} compact>
-                        Create account
+                    <PrimaryButton
+                        onClick={handleVerifyOtp}
+                        disabled={!isOtpComplete || isLoading}
+                        compact
+                    >
+                        {isLoading ? 'Verifying...' : 'Create account'}
                     </PrimaryButton>
                 )}
             </div>
@@ -407,6 +405,7 @@ const CustomerSignupView: React.FC<CustomerSignupViewProps> = ({
                         icon={<EmailIcon />}
                         onClick={() => handleSwitchMode('email')}
                         compact={otpSent}
+                        disabled={isLoading}
                     >
                         Sign in with Email
                     </SecondaryButton>
@@ -415,34 +414,20 @@ const CustomerSignupView: React.FC<CustomerSignupViewProps> = ({
                         icon={<PhoneIcon />}
                         onClick={() => handleSwitchMode('phone')}
                         compact={otpSent}
+                        disabled={isLoading}
                     >
                         Sign in with Phone
                     </SecondaryButton>
                 )}
                 <SecondaryButton
                     icon={<GoogleIcon />}
-                    onClick={handleGoogleSignIn}
-                    disabled={googleLoading}
+                    onClick={loginWithGoogle}
+                    disabled={isLoading}
                     compact={otpSent}
                 >
-                    {googleLoading ? 'Signing in...' : 'Sign in with Google'}
+                    {isLoading ? 'Signing in...' : 'Sign in with Google'}
                 </SecondaryButton>
             </div>
-
-            {/* Google Error Display */}
-            {googleError && (
-                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                    <p className="text-sm text-red-600">{googleError}</p>
-                </div>
-            )}
-
-            {/* Google Loading Indicator */}
-            {googleLoading && (
-                <div className="mt-4 flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900"></div>
-                    <span className="ml-2 text-sm text-gray-600">Signing in with Google....</span>
-                </div>
-            )}
 
             {/* Footer Link */}
             <p className={`text-center text-sm text-[#6B6B6B] ${otpSent ? 'mt-3' : 'mt-4'}`}>
@@ -450,6 +435,7 @@ const CustomerSignupView: React.FC<CustomerSignupViewProps> = ({
                 <button
                     onClick={onLoginClick}
                     className="font-semibold text-[#1E1E1E] hover:underline"
+                    disabled={isLoading}
                 >
                     Log in
                 </button>

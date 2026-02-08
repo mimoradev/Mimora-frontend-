@@ -52,10 +52,6 @@ const validateOtp = (otp: string[]): string | undefined => {
     if (otpString.length !== 6) {
         return 'Please enter all 6 digits';
     }
-    // For demo, accept any 6-digit OTP except "300759" which shows error
-    if (otpString === '300759') {
-        return 'Please enter a valid OTP number';
-    }
     return undefined;
 };
 
@@ -69,12 +65,20 @@ const LoginView: React.FC<LoginViewProps> = ({
     onCountryCodeChange,
     onPhoneChange,
     onOtpChange,
-    onSubmit,
     onSwitchMethod,
     onSignupClick,
 }) => {
-    // Use shared auth hook for Google sign-in
-    const { loginWithGoogle, isLoading: googleLoading, error: googleError } = useAuth();
+    // Use shared AuthContext for all authentication methods
+    const {
+        loginWithGoogle,
+        sendPhoneOTP,
+        verifyPhoneOTP,
+        sendEmailOTP,
+        verifyEmailOTP,
+        isLoading,
+        error,
+        clearError,
+    } = useAuth();
 
     const [touched, setTouched] = useState({
         email: false,
@@ -103,7 +107,7 @@ const LoginView: React.FC<LoginViewProps> = ({
     // Timer effect
     useEffect(() => {
         if (otpSent && timer > 0) {
-            timerRef.current = setTimeout(() => {
+            timerRef.current = window.setTimeout(() => {
                 setTimer(prev => prev - 1);
             }, 1000);
         } else if (timer === 0) {
@@ -116,6 +120,13 @@ const LoginView: React.FC<LoginViewProps> = ({
             }
         };
     }, [otpSent, timer]);
+
+    // Clear error when user starts typing
+    useEffect(() => {
+        if (error) {
+            clearError();
+        }
+    }, [email, phone, otp, clearError, error]);
 
     const handleEmailChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         onEmailChange(e.target.value);
@@ -138,7 +149,8 @@ const LoginView: React.FC<LoginViewProps> = ({
         setTouched(prev => ({ ...prev, otp: true }));
     }, [onOtpChange]);
 
-    const handleGetOtp = useCallback(() => {
+    // Send OTP via AuthContext
+    const handleGetOtp = useCallback(async () => {
         // Mark relevant field as touched to show any errors
         if (method === 'email') {
             setTouched(prev => ({ ...prev, email: true }));
@@ -146,29 +158,66 @@ const LoginView: React.FC<LoginViewProps> = ({
             setTouched(prev => ({ ...prev, phone: true }));
         }
 
-        if (isContactValid) {
+        if (!isContactValid || isLoading) return;
+
+        try {
+            if (method === 'phone') {
+                // Send Phone OTP via Firebase
+                const fullPhoneNumber = `${countryCode}${phone}`;
+                await sendPhoneOTP(fullPhoneNumber);
+            } else {
+                // Send Email OTP via Backend (use email as username for login)
+                await sendEmailOTP(email, email.split('@')[0]);
+            }
             setOtpSent(true);
             setTimer(30);
             setCanResend(false);
+        } catch (err) {
+            console.error('Failed to send OTP:', err);
         }
-    }, [method, isContactValid]);
+    }, [method, isContactValid, isLoading, countryCode, phone, email, sendPhoneOTP, sendEmailOTP]);
 
-    const handleResendOtp = useCallback(() => {
-        if (canResend) {
+    // Resend OTP
+    const handleResendOtp = useCallback(async () => {
+        if (!canResend || isLoading) return;
+
+        try {
+            if (method === 'phone') {
+                const fullPhoneNumber = `${countryCode}${phone}`;
+                await sendPhoneOTP(fullPhoneNumber);
+            } else {
+                await sendEmailOTP(email, email.split('@')[0]);
+            }
             setTimer(30);
             setCanResend(false);
-            // Reset OTP
             onOtpChange(['', '', '', '', '', '']);
             setTouched(prev => ({ ...prev, otp: false }));
+        } catch (err) {
+            console.error('Failed to resend OTP:', err);
         }
-    }, [canResend, onOtpChange]);
+    }, [canResend, isLoading, method, countryCode, phone, email, sendPhoneOTP, sendEmailOTP, onOtpChange]);
 
-    const handleVerifyOtp = useCallback(() => {
+    // Verify OTP via AuthContext
+    const handleVerifyOtp = useCallback(async () => {
         setTouched(prev => ({ ...prev, otp: true }));
-        if (isOtpValid) {
-            onSubmit();
+
+        if (!isOtpValid || isLoading) return;
+
+        try {
+            const otpString = otp.join('');
+            if (method === 'phone') {
+                // Verify Phone OTP - for login, we don't need name (pass empty string)
+                await verifyPhoneOTP(otpString, '');
+            } else {
+                // Verify Email OTP
+                await verifyEmailOTP(email, otpString);
+            }
+            // Success is handled by AuthContext (sets isAuthenticated = true)
+            // AuthPage will show reveal animation and redirect
+        } catch (err) {
+            console.error('Failed to verify OTP:', err);
         }
-    }, [isOtpValid, onSubmit]);
+    }, [isOtpValid, isLoading, otp, method, email, verifyPhoneOTP, verifyEmailOTP]);
 
     // Format timer as MM:SS
     const formatTimer = (seconds: number): string => {
@@ -176,6 +225,21 @@ const LoginView: React.FC<LoginViewProps> = ({
         const secs = seconds % 60;
         return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     };
+
+    // Handle method switch - reset state
+    const handleSwitchMethod = useCallback(() => {
+        setOtpSent(false);
+        setTimer(30);
+        setCanResend(false);
+        onOtpChange(['', '', '', '', '', '']);
+        setTouched({
+            email: false,
+            phone: false,
+            otp: false,
+        });
+        clearError();
+        onSwitchMethod();
+    }, [onOtpChange, clearError, onSwitchMethod]);
 
     return (
         <div className="auth-view-enter">
@@ -186,6 +250,13 @@ const LoginView: React.FC<LoginViewProps> = ({
             <p className="text-sm text-[#6B6B6B] mb-8">
                 Enter your {method === 'email' ? 'email' : 'phone number'} to continue, We'll send you a verification code
             </p>
+
+            {/* Error Display from AuthContext */}
+            {error && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm text-red-600">{error}</p>
+                </div>
+            )}
 
             {/* Form */}
             <div className="space-y-4">
@@ -198,7 +269,7 @@ const LoginView: React.FC<LoginViewProps> = ({
                         onChange={handleEmailChange}
                         onBlur={handleEmailBlur}
                         error={emailError}
-                        disabled={otpSent}
+                        disabled={otpSent || isLoading}
                     />
                 ) : (
                     <div onBlur={handlePhoneBlur}>
@@ -208,7 +279,7 @@ const LoginView: React.FC<LoginViewProps> = ({
                             onCountryCodeChange={onCountryCodeChange}
                             onPhoneNumberChange={handlePhoneChange}
                             error={!otpSent ? phoneError : undefined}
-                            disabled={otpSent}
+                            disabled={otpSent || isLoading}
                         />
                     </div>
                 )}
@@ -233,13 +304,13 @@ const LoginView: React.FC<LoginViewProps> = ({
                             </span>
                             <button
                                 onClick={handleResendOtp}
-                                disabled={!canResend}
-                                className={`text-sm font-medium underline transition-colors ${canResend
-                                    ? 'text-[#1E1E1E] hover:text-[#E91E63] cursor-pointer'
-                                    : 'text-gray-400 cursor-not-allowed'
+                                disabled={!canResend || isLoading}
+                                className={`text-sm font-medium underline transition-colors ${canResend && !isLoading
+                                        ? 'text-[#1E1E1E] hover:text-[#E91E63] cursor-pointer'
+                                        : 'text-gray-400 cursor-not-allowed'
                                     }`}
                             >
-                                Resend OTP
+                                {isLoading ? 'Sending...' : 'Resend OTP'}
                             </button>
                         </div>
                     </div>
@@ -251,16 +322,16 @@ const LoginView: React.FC<LoginViewProps> = ({
                 {!otpSent ? (
                     <PrimaryButton
                         onClick={handleGetOtp}
-                        disabled={!isContactValid}
+                        disabled={!isContactValid || isLoading}
                     >
-                        Get OTP
+                        {isLoading ? 'Sending OTP...' : 'Get OTP'}
                     </PrimaryButton>
                 ) : (
                     <PrimaryButton
                         onClick={handleVerifyOtp}
-                        disabled={!isOtpComplete}
+                        disabled={!isOtpComplete || isLoading}
                     >
-                        Verify OTP
+                        {isLoading ? 'Verifying...' : 'Verify OTP'}
                     </PrimaryButton>
                 )}
             </div>
@@ -276,25 +347,19 @@ const LoginView: React.FC<LoginViewProps> = ({
             <div className="space-y-3">
                 <SecondaryButton
                     icon={method === 'email' ? <PhoneIcon /> : <EmailIcon />}
-                    onClick={onSwitchMethod}
+                    onClick={handleSwitchMethod}
+                    disabled={isLoading}
                 >
                     Continue with {method === 'email' ? 'Phone' : 'Email'}
                 </SecondaryButton>
                 <SecondaryButton
                     icon={<GoogleIcon />}
                     onClick={loginWithGoogle}
-                    disabled={googleLoading}
+                    disabled={isLoading}
                 >
-                    {googleLoading ? 'Signing in...' : 'Continue with Google'}
+                    {isLoading ? 'Signing in...' : 'Continue with Google'}
                 </SecondaryButton>
             </div>
-
-            {/* Google Error Display */}
-            {googleError && (
-                <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-                    <p className="text-sm text-red-600">{googleError}</p>
-                </div>
-            )}
 
             {/* Footer Link */}
             <p className="mt-8 text-center text-sm text-[#6B6B6B]">
@@ -302,6 +367,7 @@ const LoginView: React.FC<LoginViewProps> = ({
                 <button
                     onClick={onSignupClick}
                     className="font-semibold text-[#1E1E1E] hover:underline"
+                    disabled={isLoading}
                 >
                     Sign up
                 </button>

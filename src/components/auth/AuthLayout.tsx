@@ -23,6 +23,9 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
             <AuthFormPanel>
                 {children}
             </AuthFormPanel>
+
+            {/* Invisible reCAPTCHA container for Firebase Phone Auth */}
+            <div id="recaptcha-container"></div>
         </div>
     );
 };
