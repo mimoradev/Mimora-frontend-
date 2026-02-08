@@ -1,17 +1,25 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import AuthLayout from '../components/auth/AuthLayout';
 import ProfileSelector from '../components/auth/views/ProfileSelector';
-import CreateAccountView from '../components/auth/views/CreateAccountView';
 import CustomerSignupView from '../components/auth/views/CustomerSignupView';
 import CustomerEmailSignupView from '../components/auth/views/CustomerEmailSignupView';
+import ArtistSignupView from '../components/auth/views/ArtistSignupView';
 import LoginView from '../components/auth/views/LoginView';
 import OTPVerificationView from '../components/auth/views/OTPVerificationView';
 import SuccessView from '../components/auth/views/SuccessView';
 import PrimaryButton from '../components/auth/PrimaryButton';
+import { useAuth } from '../contexts/AuthContext';
 import { useAuthFlow } from '../hooks/useAuthFlow';
 import '../styles/auth.css';
 
+type ProfileType = 'customer' | 'artist';
+
 const AuthPage: React.FC = () => {
+    const location = useLocation();
+    const navigate = useNavigate();
+    const { userType, setUserType, isAuthenticated } = useAuth();
+
     const {
         step,
         profileType,
@@ -22,17 +30,35 @@ const AuthPage: React.FC = () => {
         setAuthMethod,
         updateFormData,
         setEmailVerified,
-        goToCreateAccount,
-        goToCustomerSignup,
-        goToCustomerEmailSignup,
-        goToLogin,
-        goToOTP,
         goToSuccess,
         setStep,
     } = useAuthFlow();
 
-    // Profile Selection View
-    if (step === 'profile-selection') {
+    // Redirect if already authenticated
+    useEffect(() => {
+        if (isAuthenticated) {
+            navigate('/home');
+        }
+    }, [isAuthenticated, navigate]);
+
+    // Determine what to show based on URL path
+    const path = location.pathname;
+
+    // Helper to handle profile selection navigation
+    const handleProfileSelect = (profile: ProfileType) => {
+        setProfileType(profile);
+        setUserType(profile);
+    };
+
+    const handleGetStarted = () => {
+        if (profileType) {
+            // Navigate to login page for the selected profile
+            navigate(`/auth/${profileType}/login`);
+        }
+    };
+
+    // Profile Selection View (default /auth)
+    if (path === '/auth') {
         return (
             <AuthLayout>
                 <h1 className="text-[28px] font-semibold text-[#1E1E1E] leading-tight mb-2">
@@ -44,18 +70,12 @@ const AuthPage: React.FC = () => {
 
                 <ProfileSelector
                     selectedProfile={profileType}
-                    onSelect={setProfileType}
+                    onSelect={handleProfileSelect}
                 />
 
                 <div className="mt-8">
                     <PrimaryButton
-                        onClick={() => {
-                            if (profileType === 'customer') {
-                                goToLogin('phone');
-                            } else {
-                                goToCreateAccount();
-                            }
-                        }}
+                        onClick={handleGetStarted}
                         disabled={!profileType}
                     >
                         Get Started
@@ -65,8 +85,32 @@ const AuthPage: React.FC = () => {
         );
     }
 
-    // Customer Signup (Phone)
-    if (step === 'signup-customer') {
+    // Customer Login
+    if (path === '/auth/customer/login') {
+        return (
+            <AuthLayout>
+                <LoginView
+                    method={authMethod || 'phone'}
+                    email={formData.email}
+                    countryCode={formData.countryCode}
+                    phone={formData.phone}
+                    otp={formData.otp}
+                    onEmailChange={(email) => updateFormData({ email })}
+                    onCountryCodeChange={(code) => updateFormData({ countryCode: code })}
+                    onPhoneChange={(phone) => updateFormData({ phone })}
+                    onOtpChange={(otp) => updateFormData({ otp })}
+                    onSubmit={goToSuccess}
+                    onSwitchMethod={() => {
+                        setAuthMethod(authMethod === 'email' ? 'phone' : 'email');
+                    }}
+                    onSignupClick={() => navigate('/auth/customer/signup')}
+                />
+            </AuthLayout>
+        );
+    }
+
+    // Customer Signup
+    if (path === '/auth/customer/signup') {
         return (
             <AuthLayout>
                 <CustomerSignupView
@@ -79,108 +123,62 @@ const AuthPage: React.FC = () => {
                     onPhoneChange={(phone) => updateFormData({ phone })}
                     onOtpChange={(otp) => updateFormData({ otp })}
                     onSubmit={goToSuccess}
-                    onEmailSignIn={goToCustomerEmailSignup}
-                    onGoogleSignIn={() => console.log('Google Sign In')}
-                    onLoginClick={() => goToLogin('phone')}
+                    onEmailSignIn={() => {
+                        // Switch to email signup view
+                        setStep('signup-customer-email');
+                    }}
+                    onLoginClick={() => navigate('/auth/customer/login')}
                 />
             </AuthLayout>
         );
     }
 
-    // Customer Signup (Email)
+    // Artist Login
+    if (path === '/auth/artist/login') {
+        return (
+            <AuthLayout>
+                <LoginView
+                    method={authMethod || 'phone'}
+                    email={formData.email}
+                    countryCode={formData.countryCode}
+                    phone={formData.phone}
+                    otp={formData.otp}
+                    onEmailChange={(email) => updateFormData({ email })}
+                    onCountryCodeChange={(code) => updateFormData({ countryCode: code })}
+                    onPhoneChange={(phone) => updateFormData({ phone })}
+                    onOtpChange={(otp) => updateFormData({ otp })}
+                    onSubmit={goToSuccess}
+                    onSwitchMethod={() => {
+                        setAuthMethod(authMethod === 'email' ? 'phone' : 'email');
+                    }}
+                    onSignupClick={() => navigate('/auth/artist/signup')}
+                />
+            </AuthLayout>
+        );
+    }
+
+    // Artist Signup - Full page layout (not wrapped in AuthLayout)
+    if (path === '/auth/artist/signup') {
+        return <ArtistSignupView />;
+    }
+
+    // Legacy step-based views (for internal transitions like OTP, Success)
+    // These can be kept for in-page transitions or migrated to URL-based later
+
+
     if (step === 'signup-customer-email') {
         return (
             <AuthLayout>
                 <CustomerEmailSignupView
-                    fullName={formData.fullName}
-                    email={formData.email}
-                    otp={formData.otp}
-                    onFullNameChange={(name) => updateFormData({ fullName: name })}
-                    onEmailChange={(email) => updateFormData({ email })}
-                    onOtpChange={(otp) => updateFormData({ otp })}
-                    onSubmit={goToSuccess}
-                    onPhoneSignIn={goToCustomerSignup}
+                    onPhoneSignIn={() => navigate('/auth/customer/signup')}
                     onGoogleSignIn={() => console.log('Google Sign In')}
-                    onLoginClick={() => goToLogin('phone')}
+                    onLoginClick={() => navigate('/auth/customer/login')}
+                    onSuccess={goToSuccess}
                 />
             </AuthLayout>
         );
     }
 
-
-    // Create Account View (Artist)
-    if (step === 'create-account') {
-        return (
-            <AuthLayout>
-                <CreateAccountView
-                    fullName={formData.fullName}
-                    countryCode={formData.countryCode}
-                    phone={formData.phone}
-                    onFullNameChange={(name) => updateFormData({ fullName: name })}
-                    onCountryCodeChange={(code) => updateFormData({ countryCode: code })}
-                    onPhoneChange={(phone) => updateFormData({ phone })}
-                    onSubmit={goToOTP}
-                    onSwitchToEmail={() => goToLogin('email')}
-                    onGoogleSignIn={() => console.log('Google Sign In')}
-                    onLoginClick={() => goToLogin('email')}
-                />
-            </AuthLayout>
-        );
-    }
-
-    // Login with Email
-    if (step === 'login-email') {
-        return (
-            <AuthLayout>
-                <LoginView
-                    method="email"
-                    email={formData.email}
-                    countryCode={formData.countryCode}
-                    phone={formData.phone}
-                    otp={formData.otp}
-                    onEmailChange={(email) => updateFormData({ email })}
-                    onCountryCodeChange={(code) => updateFormData({ countryCode: code })}
-                    onPhoneChange={(phone) => updateFormData({ phone })}
-                    onOtpChange={(otp) => updateFormData({ otp })}
-                    onSubmit={goToSuccess}
-                    onSwitchMethod={() => {
-                        setAuthMethod('phone');
-                        setStep('login-phone');
-                    }}
-                    onGoogleSignIn={() => console.log('Google Sign In')}
-                    onSignupClick={goToCustomerSignup}
-                />
-            </AuthLayout>
-        );
-    }
-
-    // Login with Phone
-    if (step === 'login-phone') {
-        return (
-            <AuthLayout>
-                <LoginView
-                    method="phone"
-                    email={formData.email}
-                    countryCode={formData.countryCode}
-                    phone={formData.phone}
-                    otp={formData.otp}
-                    onEmailChange={(email) => updateFormData({ email })}
-                    onCountryCodeChange={(code) => updateFormData({ countryCode: code })}
-                    onPhoneChange={(phone) => updateFormData({ phone })}
-                    onOtpChange={(otp) => updateFormData({ otp })}
-                    onSubmit={goToSuccess}
-                    onSwitchMethod={() => {
-                        setAuthMethod('email');
-                        setStep('login-email');
-                    }}
-                    onGoogleSignIn={() => console.log('Google Sign In')}
-                    onSignupClick={goToCustomerSignup}
-                />
-            </AuthLayout>
-        );
-    }
-
-    // OTP Verification
     if (step === 'otp-verification') {
         return (
             <AuthLayout>
@@ -194,38 +192,32 @@ const AuthPage: React.FC = () => {
                     isVerified={isEmailVerified}
                     onOtpChange={(otp) => updateFormData({ otp })}
                     onSubmit={() => {
-                        // Simulate verification
                         setEmailVerified(true);
                         goToSuccess();
                     }}
                     onSwitchMethod={() => {
-                        if (authMethod === 'email') {
-                            setAuthMethod('phone');
-                        } else {
-                            setAuthMethod('email');
-                        }
+                        setAuthMethod(authMethod === 'email' ? 'phone' : 'email');
                     }}
                     onGoogleSignIn={() => console.log('Google Sign In')}
-                    onLoginClick={() => goToLogin('email')}
+                    onLoginClick={() => navigate(`/auth/${userType || 'customer'}/login`)}
                 />
             </AuthLayout>
         );
     }
 
-    // Success
     if (step === 'success') {
         return (
             <AuthLayout>
                 <SuccessView
                     onContinue={() => {
-                        // Navigate to home page
-                        window.location.href = '/home';
+                        navigate('/home');
                     }}
                 />
             </AuthLayout>
         );
     }
 
+    // Fallback - redirect to profile selection
     return null;
 };
 

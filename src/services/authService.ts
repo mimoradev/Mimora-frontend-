@@ -52,9 +52,11 @@ class AuthService {
 
   // ===============================
   // OAUTH (Firebase token required)
+  // Supports both customer and artist auth
   // ===============================
-  async authenticateWithOAuth(firebaseToken: string): Promise<User> {
-    return this.fetchJSON('/auth/customer/oauth', {
+  async authenticateWithOAuth(firebaseToken: string, userType: 'customer' | 'artist' = 'customer'): Promise<User> {
+    const endpoint = userType === 'artist' ? '/auth/artist/oauth' : '/auth/customer/oauth';
+    return this.fetchJSON(endpoint, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${firebaseToken}`,
@@ -64,9 +66,14 @@ class AuthService {
 
   // ===============================
   // PHONE OTP (Firebase)
+  // Supports both customer and artist auth
   // ===============================
-  async authenticateWithOTP(firebaseToken: string, name: string): Promise<User> {
-    return this.fetchJSON(API_CONFIG.ENDPOINTS.OTP_AUTH, {
+  async authenticateWithOTP(firebaseToken: string, name: string, userType: 'customer' | 'artist' = 'customer'): Promise<User> {
+    // Use userType to determine endpoint (backend may have /auth/artist/otp in the future)
+    const endpoint = userType === 'artist'
+      ? '/auth/artist/otp'  // Future artist endpoint
+      : API_CONFIG.ENDPOINTS.OTP_AUTH;
+    return this.fetchJSON(endpoint, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${firebaseToken}`,

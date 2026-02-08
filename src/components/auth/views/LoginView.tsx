@@ -4,6 +4,7 @@ import PhoneInput from '../PhoneInput';
 import PrimaryButton from '../PrimaryButton';
 import SecondaryButton, { EmailIcon, PhoneIcon, GoogleIcon } from '../SecondaryButton';
 import OTPInput from '../OTPInput';
+import { useAuth } from '@/contexts/AuthContext';
 
 type LoginMethod = 'email' | 'phone';
 
@@ -19,7 +20,6 @@ interface LoginViewProps {
     onOtpChange: (otp: string[]) => void;
     onSubmit: () => void;
     onSwitchMethod: () => void;
-    onGoogleSignIn: () => void;
     onSignupClick: () => void;
 }
 
@@ -71,9 +71,11 @@ const LoginView: React.FC<LoginViewProps> = ({
     onOtpChange,
     onSubmit,
     onSwitchMethod,
-    onGoogleSignIn,
     onSignupClick,
 }) => {
+    // Use shared auth hook for Google sign-in
+    const { loginWithGoogle, isLoading: googleLoading, error: googleError } = useAuth();
+
     const [touched, setTouched] = useState({
         email: false,
         phone: false,
@@ -278,10 +280,21 @@ const LoginView: React.FC<LoginViewProps> = ({
                 >
                     Continue with {method === 'email' ? 'Phone' : 'Email'}
                 </SecondaryButton>
-                <SecondaryButton icon={<GoogleIcon />} onClick={onGoogleSignIn}>
-                    Continue with Google
+                <SecondaryButton
+                    icon={<GoogleIcon />}
+                    onClick={loginWithGoogle}
+                    disabled={googleLoading}
+                >
+                    {googleLoading ? 'Signing in...' : 'Continue with Google'}
                 </SecondaryButton>
             </div>
+
+            {/* Google Error Display */}
+            {googleError && (
+                <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm text-red-600">{googleError}</p>
+                </div>
+            )}
 
             {/* Footer Link */}
             <p className="mt-8 text-center text-sm text-[#6B6B6B]">
