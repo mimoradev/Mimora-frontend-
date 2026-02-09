@@ -81,6 +81,16 @@ class AuthService {
       body: JSON.stringify({ name }),
     });
   }
+
+  // ===============================
+  // CHECK USER EXISTS
+  // ===============================
+  async checkUserExists(identifier: string, type: 'email' | 'phone'): Promise<{ exists: boolean; user_type: string | null }> {
+    return this.fetchJSON('/auth/customer/check', {
+      method: 'POST',
+      body: JSON.stringify({ identifier, type }),
+    });
+  }
 }
 
 export const authService = new AuthService();

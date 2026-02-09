@@ -3,6 +3,7 @@ import { GoogleAuthProvider, signInWithPopup, signInWithPhoneNumber, RecaptchaVe
 import { auth } from '../firebase';
 import { authService } from '../services/authService';
 import type { User } from '../types/auth.types';
+import { toast } from 'sonner';
 
 // Types
 export type UserType = 'customer' | 'artist' | null;
@@ -13,6 +14,7 @@ interface AuthState {
     userType: UserType;
     isAuthenticated: boolean;
     isLoading: boolean;
+    loadingAction: string | null;  // What action is loading (checking-user, sending-otp, etc.)
     error: string | null;
     isTransitioning: boolean;  // For reveal animation on redirect
 }
@@ -44,6 +46,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         userType: null,
         isAuthenticated: false,
         isLoading: true, // Start true to check localStorage
+        loadingAction: null,
         error: null,
         isTransitioning: false,
     });
@@ -83,12 +86,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }, []);
 
     // Helper to set loading & clear error
-    const startLoading = useCallback(() => {
-        setState(prev => ({ ...prev, isLoading: true, error: null }));
+    const startLoading = useCallback((action: string = 'loading') => {
+        setState(prev => ({ ...prev, isLoading: true, loadingAction: action, error: null }));
     }, []);
 
     const setError = useCallback((error: string) => {
-        setState(prev => ({ ...prev, isLoading: false, error }));
+        setState(prev => ({ ...prev, isLoading: false, loadingAction: null, error }));
     }, []);
 
     const clearError = useCallback(() => {
@@ -169,21 +172,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }, []);
 
     const sendPhoneOTP = useCallback(async (phoneNumber: string) => {
-        startLoading();
+        startLoading('sending-otp');
         try {
             setupRecaptcha();
             const appVerifier = (window as any).recaptchaVerifier;
             const confirmation = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
             setConfirmationResult(confirmation);
-            setState(prev => ({ ...prev, isLoading: false }));
+            setState(prev => ({ ...prev, isLoading: false, loadingAction: null }));
+            toast.success('OTP sent to your phone!');
         } catch (err: any) {
             console.error('Send OTP failed:', err);
             if (err.code === 'auth/invalid-phone-number') {
                 setError('Invalid phone number format');
+                toast.error('Invalid phone number');
             } else if (err.code === 'auth/too-many-requests') {
                 setError('Too many attempts. Please try again later.');
+                toast.error('Too many attempts. Try later.');
             } else {
                 setError(err.message || 'Failed to send OTP');
+                toast.error('Failed to send OTP');
             }
         }
     }, [startLoading, setError, setupRecaptcha]);
@@ -203,35 +210,43 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             console.error('Verify OTP failed:', err);
             if (err.code === 'auth/invalid-verification-code') {
                 setError('Invalid OTP. Please check and try again.');
+                toast.error('Invalid OTP. Please check and try again.');
             } else if (err.code === 'auth/code-expired') {
                 setError('OTP has expired. Please request a new one.');
+                toast.error('OTP expired. Request a new one.');
             } else {
                 setError(err.message || 'Failed to verify OTP');
+                toast.error('Verification failed');
             }
         }
     }, [startLoading, setError, confirmationResult, completeAuth, state.userType]);
 
     // ============ Email OTP ============
     const sendEmailOTP = useCallback(async (email: string, username: string) => {
-        startLoading();
+        startLoading('sending-otp');
         try {
             await authService.sendEmailOTP({ email, username });
-            setState(prev => ({ ...prev, isLoading: false }));
+            setState(prev => ({ ...prev, isLoading: false, loadingAction: null }));
+            toast.success('OTP sent to your email!');
         } catch (err: any) {
             console.error('Send Email OTP failed:', err);
             setError(err.message || 'Failed to send email OTP');
+            toast.error('Failed to send OTP');
         }
     }, [startLoading, setError]);
 
     const verifyEmailOTP = useCallback(async (email: string, otp: string) => {
-        startLoading();
+        startLoading('verifying-otp');
         try {
             const user = await authService.verifyEmailOTP({ email, otp });
-            // For email OTP, we don't have a firebase token, so use a placeholder
-            completeAuth(user, 'email-otp-session');
+            // Backend returns a Firebase custom token in user.token
+            const firebaseToken = user.token || 'email-otp-session';
+            toast.success('Welcome to Mimora!');
+            completeAuth(user, firebaseToken);
         } catch (err: any) {
             console.error('Verify Email OTP failed:', err);
             setError(err.message || 'Failed to verify email OTP');
+            toast.error('Invalid OTP. Please try again.');
         }
     }, [startLoading, setError, completeAuth]);
 
@@ -246,6 +261,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             userType: null,
             isAuthenticated: false,
             isLoading: false,
+            loadingAction: null,
             error: null,
             isTransitioning: false,
         });

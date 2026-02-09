@@ -9,6 +9,7 @@ import { AuthProvider } from './contexts/AuthContext'
 // Components
 import PageLoader from './components/common/PageLoader'
 import { RevealLoader } from './components/common/RevealLoader'
+import { Toaster } from './components/common/Toaster'
 
 // Pages
 const LandingPage = lazy(() => import('./pages/LandingPage'))
@@ -81,6 +82,9 @@ function App() {
 
           {/* Reveal Loader Overlay - shrinks away to reveal content */}
           <RevealLoader isLoading={isLoading} />
+
+          {/* Toast Notifications */}
+          <Toaster />
         </Router>
       </AuthProvider>
     </QueryClientProvider>

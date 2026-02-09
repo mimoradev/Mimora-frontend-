@@ -5,6 +5,7 @@ import PrimaryButton from '../PrimaryButton';
 import SecondaryButton, { EmailIcon, PhoneIcon, GoogleIcon } from '../SecondaryButton';
 import OTPInput from '../OTPInput';
 import { useAuth } from '@/contexts/AuthContext';
+import { authService } from '@/services/authService';
 
 type LoginMethod = 'email' | 'phone';
 
@@ -76,6 +77,7 @@ const LoginView: React.FC<LoginViewProps> = ({
         sendEmailOTP,
         verifyEmailOTP,
         isLoading,
+        loadingAction,
         error,
         clearError,
     } = useAuth();
@@ -161,6 +163,17 @@ const LoginView: React.FC<LoginViewProps> = ({
         if (!isContactValid || isLoading) return;
 
         try {
+            // First, check if user exists
+            const identifier = method === 'email' ? email : `${countryCode}${phone}`;
+            const { exists } = await authService.checkUserExists(identifier, method);
+
+            if (!exists) {
+                // User doesn't exist - show error with signup CTA
+                clearError();
+                // Set error through a local state since clearError doesn't allow setting
+                throw new Error('No account found with this ' + (method === 'email' ? 'email' : 'phone number') + '. Please create an account first.');
+            }
+
             if (method === 'phone') {
                 // Send Phone OTP via Firebase
                 const fullPhoneNumber = `${countryCode}${phone}`;
@@ -172,10 +185,10 @@ const LoginView: React.FC<LoginViewProps> = ({
             setOtpSent(true);
             setTimer(30);
             setCanResend(false);
-        } catch (err) {
+        } catch (err: any) {
             console.error('Failed to send OTP:', err);
         }
-    }, [method, isContactValid, isLoading, countryCode, phone, email, sendPhoneOTP, sendEmailOTP]);
+    }, [method, isContactValid, isLoading, countryCode, phone, email, sendPhoneOTP, sendEmailOTP, clearError]);
 
     // Resend OTP
     const handleResendOtp = useCallback(async () => {
@@ -306,8 +319,8 @@ const LoginView: React.FC<LoginViewProps> = ({
                                 onClick={handleResendOtp}
                                 disabled={!canResend || isLoading}
                                 className={`text-sm font-medium underline transition-colors ${canResend && !isLoading
-                                        ? 'text-[#1E1E1E] hover:text-[#E91E63] cursor-pointer'
-                                        : 'text-gray-400 cursor-not-allowed'
+                                    ? 'text-[#1E1E1E] hover:text-[#E91E63] cursor-pointer'
+                                    : 'text-gray-400 cursor-not-allowed'
                                     }`}
                             >
                                 {isLoading ? 'Sending...' : 'Resend OTP'}

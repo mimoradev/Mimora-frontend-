@@ -1,80 +1,168 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import CustomerHomeNavbar from '../components/home/CustomerHomeNavbar';
+import HeroCarousel from '../components/home/HeroCarousel';
+import SearchOverlay from '../components/home/SearchOverlay';
+import CategoriesSection from '../components/home/CategoriesSection';
+import ArtistSection from '../components/home/ArtistSection';
+import CustomerHomeFooter from '../components/home/CustomerHomeFooter';
+import type { ArtistData } from '../components/home/ArtistCard';
+
+// Sample data for Frequently Booked artists
+const frequentlyBookedArtists: ArtistData[] = [
+    {
+        id: '1',
+        name: 'Kavya Ramesh',
+        avatarColor: '#FFB6C1',
+        specialty: 'Hairstylist',
+        badges: [
+            { type: 'kyc', label: 'KYC' },
+            { type: 'self-learned', label: 'Self Learned' },
+        ],
+        distance: '4.5 km away',
+        experience: '5+ years',
+        rating: '4,410.8K',
+        portfolioColors: ['#D4A574', '#8B7355', '#C9A86C', '#A0826D'],
+    },
+    {
+        id: '2',
+        name: 'Shruti',
+        avatarColor: '#DDA0DD',
+        specialty: 'Makeup Artist',
+        badges: [
+            { type: 'kyc', label: 'KYC' },
+            { type: 'certified', label: 'Certified' },
+        ],
+        distance: '2.1 km away',
+        experience: '3+ years',
+        rating: '4,712.3K',
+        portfolioColors: ['#B8860B', '#CD853F', '#DEB887', '#D2691E'],
+    },
+    {
+        id: '3',
+        name: 'Nisha Prabhu',
+        avatarColor: '#F0E68C',
+        specialty: 'Saree Draping · Saree Pleating',
+        badges: [
+            { type: 'kyc', label: 'KYC' },
+            { type: 'apprenticeship', label: 'Apprenticeship' },
+        ],
+        distance: '1.9 km away',
+        experience: '1+ years',
+        rating: '4,213.5K',
+        portfolioColors: ['#FFB6C1', '#DDA0DD', '#F0E68C', '#FFA07A'],
+    },
+    {
+        id: '4',
+        name: 'Aarti',
+        avatarColor: '#98FB98',
+        specialty: 'Mehendi Artist',
+        badges: [
+            { type: 'kyc', label: 'KYC' },
+            { type: 'certified', label: 'Certified' },
+        ],
+        distance: '3.8 km away',
+        experience: '10+ years',
+        rating: '4,890.2K',
+        portfolioColors: ['#98FB98', '#87CEEB', '#FFB6C1', '#DDA0DD'],
+    },
+];
+
+// Sample data for Recently Booked artists
+const recentlyBookedArtists: ArtistData[] = [
+    {
+        id: '5',
+        name: 'Kavya Ramesh',
+        avatarColor: '#FFB6C1',
+        specialty: 'Hairstylist',
+        badges: [
+            { type: 'kyc', label: 'KYC' },
+            { type: 'self-learned', label: 'Self Learned' },
+        ],
+        distance: '4.5 km away',
+        experience: '5+ years',
+        rating: '4,410.8K',
+        portfolioColors: ['#D4A574', '#8B7355', '#C9A86C', '#A0826D'],
+    },
+    {
+        id: '6',
+        name: 'Shruti',
+        avatarColor: '#DDA0DD',
+        specialty: 'Makeup Artist',
+        badges: [
+            { type: 'kyc', label: 'KYC' },
+            { type: 'certified', label: 'Certified' },
+        ],
+        distance: '2.1 km away',
+        experience: '3+ years',
+        rating: '4,712.3K',
+        portfolioColors: ['#B8860B', '#CD853F', '#DEB887', '#D2691E'],
+    },
+    {
+        id: '7',
+        name: 'Nisha Prabhu',
+        avatarColor: '#F0E68C',
+        specialty: 'Saree Draping · Saree Pleating',
+        badges: [
+            { type: 'kyc', label: 'KYC' },
+            { type: 'apprenticeship', label: 'Apprenticeship' },
+        ],
+        distance: '1.9 km away',
+        experience: '1+ years',
+        rating: '4,213.5K',
+        portfolioColors: ['#FFB6C1', '#DDA0DD', '#F0E68C', '#FFA07A'],
+    },
+    {
+        id: '8',
+        name: 'Aarti',
+        avatarColor: '#98FB98',
+        specialty: 'Mehendi Artist',
+        badges: [
+            { type: 'kyc', label: 'KYC' },
+            { type: 'certified', label: 'Certified' },
+        ],
+        distance: '3.8 km away',
+        experience: '10+ years',
+        rating: '4,890.2K',
+        portfolioColors: ['#98FB98', '#87CEEB', '#FFB6C1', '#DDA0DD'],
+    },
+];
 
 const HomePage: React.FC = () => {
-    const navigate = useNavigate();
-
     return (
-        <div className="min-h-screen bg-linear-to-br from-pink-50 to-white flex items-center justify-center p-6">
-            <div className="max-w-md w-full text-center">
-                {/* MIMORA Logo */}
-                <div className="mb-8">
-                    <span className="text-2xl font-bold tracking-wider" style={{ color: '#E84A7F' }}>
-                        MIMORA
-                    </span>
-                </div>
+        <div className="min-h-screen bg-white">
+            {/* Customer Home Navbar */}
+            <CustomerHomeNavbar />
 
-                {/* Welcome Card */}
-                <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
-                    {/* Success Icon */}
-                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <svg
-                            className="w-8 h-8 text-green-500"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M5 13l4 4L19 7"
-                            />
-                        </svg>
-                    </div>
+            {/* Main Content */}
+            <main>
+                {/* Hero Section with Carousel */}
+                <section className="bg-[#FFE9F0] pt-6 pb-32">
+                    <HeroCarousel />
+                </section>
 
-                    <h1 className="text-2xl font-semibold text-[#1E1E1E] mb-2">
-                        Welcome to Mimora!
-                    </h1>
-                    <p className="text-gray-500 mb-6">
-                        You have successfully logged in. This is a placeholder home page.
-                    </p>
+                {/* Search Overlay - Positioned over hero bottom */}
+                <SearchOverlay />
 
-                    {/* User Info Placeholder */}
-                    <div className="bg-gray-50 rounded-xl p-4 mb-6">
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-linear-to-br from-pink-400 to-pink-600 rounded-full flex items-center justify-center text-white font-semibold text-lg">
-                                U
-                            </div>
-                            <div className="text-left">
-                                <p className="font-medium text-[#1E1E1E]">User</p>
-                                <p className="text-sm text-gray-500">Customer Account</p>
-                            </div>
-                        </div>
-                    </div>
+                {/* Categories Section */}
+                <CategoriesSection />
 
-                    {/* Quick Actions */}
-                    <div className="space-y-3">
-                        <button
-                            onClick={() => navigate('/')}
-                            className="w-full h-12 bg-[#1E1E1E] text-white rounded-full font-medium hover:bg-[#2a2a2a] transition-colors"
-                        >
-                            Explore Services
-                        </button>
-                        <button
-                            onClick={() => navigate('/auth')}
-                            className="w-full h-12 bg-white text-[#1E1E1E] border border-gray-200 rounded-full font-medium hover:bg-gray-50 transition-colors"
-                        >
-                            Back to Auth
-                        </button>
-                    </div>
-                </div>
+                {/* Frequently Booked Section */}
+                <ArtistSection
+                    title="Frequently Booked"
+                    artists={frequentlyBookedArtists}
+                    buttonText="View Package"
+                />
 
-                {/* Footer Note */}
-                <p className="text-xs text-gray-400">
-                    This is a placeholder page. The actual home page will be built later.
-                </p>
-            </div>
+                {/* Recently Booked Section */}
+                <ArtistSection
+                    title="Recently Booked"
+                    artists={recentlyBookedArtists}
+                    buttonText="Book Again"
+                />
+            </main>
+
+            {/* Footer */}
+            <CustomerHomeFooter />
         </div>
     );
 };

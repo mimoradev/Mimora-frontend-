@@ -8,17 +8,16 @@ import LoginView from '../components/auth/views/LoginView';
 import OTPVerificationView from '../components/auth/views/OTPVerificationView';
 import SuccessView from '../components/auth/views/SuccessView';
 import PrimaryButton from '../components/auth/PrimaryButton';
-import { RevealLoader } from '../components/common/RevealLoader';
 import { useAuth } from '../contexts/AuthContext';
 import { useAuthFlow } from '../hooks/useAuthFlow';
 import '../styles/auth.css';
 
-type ProfileType = 'customer' | 'artist';
+
 
 const AuthPage: React.FC = () => {
     const location = useLocation();
     const navigate = useNavigate();
-    const { userType, setUserType, isAuthenticated, isTransitioning, startTransition, endTransition } = useAuth();
+    const { userType, setUserType, isAuthenticated } = useAuth();
 
     const {
         step,
@@ -33,25 +32,33 @@ const AuthPage: React.FC = () => {
         goToSuccess,
     } = useAuthFlow();
 
-    // Redirect with reveal animation when authenticated
+    // Redirect to home when authenticated (Airbnb/Uber style - simple redirect)
     useEffect(() => {
-        if (isAuthenticated && !isTransitioning) {
-            // Start the reveal animation
-            startTransition();
-            // Wait for animation to complete, then navigate
-            const timer = setTimeout(() => {
-                endTransition();
-                navigate('/home');
-            }, 1800); // Match RevealLoader animation duration
-            return () => clearTimeout(timer);
+        if (isAuthenticated) {
+            // Simple redirect without complex animation
+            navigate('/home', { replace: true });
         }
-    }, [isAuthenticated, isTransitioning, startTransition, endTransition, navigate]);
+    }, [isAuthenticated, navigate]);
+
+    // Show loading state while checking auth or redirecting
+    if (isAuthenticated) {
+        return (
+            <div className="min-h-screen bg-[#F8A5B8] flex flex-col items-center justify-center">
+                <img
+                    src="/Mimora Logo (No text).png"
+                    alt="Mimora"
+                    className="w-16 h-16 animate-pulse"
+                />
+                <p className="mt-4 text-[#1E1E1E] font-medium">Redirecting...</p>
+            </div>
+        );
+    }
 
     // Determine what to show based on URL path
     const path = location.pathname;
 
     // Helper to handle profile selection navigation
-    const handleProfileSelect = (profile: ProfileType) => {
+    const handleProfileSelect = (profile: 'customer' | 'artist') => {
         setProfileType(profile);
         setUserType(profile);
     };
@@ -62,11 +69,6 @@ const AuthPage: React.FC = () => {
             navigate(`/auth/${profileType}/login`);
         }
     };
-
-    // Show reveal animation when transitioning
-    if (isTransitioning) {
-        return <RevealLoader isLoading={true} />;
-    }
 
     // Profile Selection View (default /auth)
     if (path === '/auth') {

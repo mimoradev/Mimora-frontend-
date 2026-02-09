@@ -5,6 +5,7 @@ import OTPInput from '../OTPInput';
 import PrimaryButton from '../PrimaryButton';
 import SecondaryButton, { EmailIcon, GoogleIcon } from '../SecondaryButton';
 import { useAuth } from '@/contexts/AuthContext';
+import { authService } from '@/services/authService';
 
 // Phone Icon for secondary button
 const PhoneIcon = () => (
@@ -196,6 +197,15 @@ const CustomerSignupView: React.FC<CustomerSignupViewProps> = ({
         if (!isFormValid) return;
 
         try {
+            // First, check if user already exists
+            const identifier = signupMode === 'phone' ? `${countryCode}${phone}` : localEmail;
+            const { exists } = await authService.checkUserExists(identifier, signupMode);
+
+            if (exists) {
+                // User already exists - show error with login CTA
+                throw new Error('An account with this ' + (signupMode === 'email' ? 'email' : 'phone number') + ' already exists. Try logging in instead.');
+            }
+
             if (signupMode === 'phone') {
                 // Send Phone OTP via Firebase + Backend
                 const fullPhoneNumber = `${countryCode}${phone}`;
@@ -207,7 +217,7 @@ const CustomerSignupView: React.FC<CustomerSignupViewProps> = ({
             setOtpSent(true);
             setTimer(30);
             setCanResend(false);
-        } catch (err) {
+        } catch (err: any) {
             // Error is handled by AuthContext
             console.error('Failed to send OTP:', err);
         }
@@ -359,8 +369,8 @@ const CustomerSignupView: React.FC<CustomerSignupViewProps> = ({
                                 onClick={handleResendOtp}
                                 disabled={!canResend || isLoading}
                                 className={`text-xs font-medium underline transition-colors ${canResend && !isLoading
-                                        ? 'text-[#1E1E1E] hover:text-[#E91E63] cursor-pointer'
-                                        : 'text-gray-400 cursor-not-allowed'
+                                    ? 'text-[#1E1E1E] hover:text-[#E91E63] cursor-pointer'
+                                    : 'text-gray-400 cursor-not-allowed'
                                     }`}
                             >
                                 {isLoading ? 'Sending...' : 'Resend OTP'}
