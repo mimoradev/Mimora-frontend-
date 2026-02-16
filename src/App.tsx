@@ -18,6 +18,9 @@ const LandingPage = lazy(() => import('./pages/LandingPage'))
 const AuthPage = lazy(() => import('./pages/AuthPage'))
 const HomePage = lazy(() => import('./pages/HomePage'))
 const ArtistHomePage = lazy(() => import('./pages/ArtistHomePage'))
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'))
+const TermsOfService = lazy(() => import('./pages/TermsOfService'))
+const Contact = lazy(() => import('./pages/Contact'))
 const ProfileCompletionGuard = lazy(() => import('./components/auth/ProfileCompletionGuard'))
 
 // Create a client for React Query
@@ -60,6 +63,12 @@ function AnimatedRoutes() {
           <Route path="/home" element={<PageTransition><HomePage /></PageTransition>} />
           <Route path="/artist" element={<PageTransition><ProfileCompletionGuard><ArtistHomePage /></ProfileCompletionGuard></PageTransition>} />
           <Route path="/artist/home" element={<PageTransition><ProfileCompletionGuard><ArtistHomePage /></ProfileCompletionGuard></PageTransition>} />
+          <Route path="/artist/home" element={<PageTransition><ProfileCompletionGuard><ArtistHomePage /></ProfileCompletionGuard></PageTransition>} />
+
+          {/* Static Pages */}
+          <Route path="/privacy" element={<PageTransition><PrivacyPolicy /></PageTransition>} />
+          <Route path="/terms" element={<PageTransition><TermsOfService /></PageTransition>} />
+          <Route path="/contact" element={<PageTransition><Contact /></PageTransition>} />
         </Routes>
       </Suspense>
     </AnimatePresence>
