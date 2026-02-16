@@ -11,7 +11,7 @@ import ArtistProfilePreview from '@/components/auth/ArtistProfilePreview';
 import { authService } from '@/services/authService';
 import { toast } from 'sonner';
 import { getErrorMessage } from '@/utils/errorHandling';
-import { uploadProfilePicture, uploadCertificate, uploadPortfolioImage } from '@/services/uploadService';
+import { uploadProfilePicture, uploadPortfolioImage } from '@/services/uploadService';
 
 // Types
 type SignupMethod = 'phone' | 'email' | 'google' | null;
@@ -1640,32 +1640,32 @@ const ArtistSignupView: React.FC = () => {
         }
     };
 
-    const handleCertificateUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+    // const handleCertificateUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    //     const file = e.target.files?.[0];
+    //     if (!file) return;
 
-        setIsUploadingImage(true);
-        setOtpError('');
+    //     setIsUploadingImage(true);
+    //     setOtpError('');
 
-        try {
-            const url = await uploadCertificate(file, {
-                onProgress: (progress) => console.log(`Upload: ${Math.round(progress)}%`),
-                onError: (error) => {
-                    setOtpError(error);
-                    toast.error(error);
-                },
-                onSuccess: () => toast.success('Certificate uploaded!')
-            });
+    //     try {
+    //         const url = await uploadCertificate(file, {
+    //             onProgress: (progress) => console.log(`Upload: ${Math.round(progress)}%`),
+    //             onError: (error) => {
+    //                 setOtpError(error);
+    //                 toast.error(error);
+    //             },
+    //             onSuccess: () => toast.success('Certificate uploaded!')
+    //         });
 
-            setFormData(prev => ({ ...prev, certificateUrl: url }));
-        } catch (error: any) {
-            const friendlyError = getErrorMessage(error);
-            setOtpError(friendlyError);
-            toast.error(friendlyError);
-        } finally {
-            setIsUploadingImage(false);
-        }
-    };
+    //         setFormData(prev => ({ ...prev, certificateUrl: url }));
+    //     } catch (error: any) {
+    //         const friendlyError = getErrorMessage(error);
+    //         setOtpError(friendlyError);
+    //         toast.error(friendlyError);
+    //     } finally {
+    //         setIsUploadingImage(false);
+    //     }
+    // };
 
     const handleSendPhoneOTP = async () => {
         setOtpSending(true);

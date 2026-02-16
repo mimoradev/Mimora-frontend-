@@ -4,7 +4,6 @@ import OTPVerificationView from './auth/views/OTPVerificationView';
 import { useFirebaseOTP } from '../hooks/useFirebaseOTP';
 import { useGoogleAuth } from '../hooks/useGoogleAuth';
 import { authService } from '../services/authService';
-import type { User } from '../types/auth.types';
 
 const CreateAccountContainer: React.FC = () => {
   const [step, setStep] = useState<'signup' | 'otp'>('signup');
@@ -13,14 +12,14 @@ const CreateAccountContainer: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState<string[]>(Array(6).fill(''));
   const [backendError, setBackendError] = useState<string | null>(null);
-  
+
   const { sendOTP, verifyOTP, loading: otpLoading, error: otpError, clearError: clearOtpError } = useFirebaseOTP();
-  
+
   // Use the Google auth hook
-  const { 
-    handleGoogleSignIn, 
-    loading: googleLoading, 
-    error: googleError 
+  const {
+    handleGoogleSignIn,
+    loading: googleLoading,
+    error: googleError
   } = useGoogleAuth({
     onSuccess: (user) => {
       alert(`Welcome, ${user.name || user.email}!`);
@@ -39,10 +38,10 @@ const CreateAccountContainer: React.FC = () => {
     try {
       clearOtpError();
       setBackendError(null);
-      
+
       const fullPhoneNumber = `${countryCode}${phone}`;
       console.log('📱 Sending OTP to:', fullPhoneNumber);
-      
+
       await sendOTP(fullPhoneNumber);
       console.log('✅ OTP sent successfully');
       setStep('otp');
@@ -55,25 +54,25 @@ const CreateAccountContainer: React.FC = () => {
     try {
       clearOtpError();
       setBackendError(null);
-      
+
       const otpString = otp.join('');
       console.log('🔐 Verifying OTP:', otpString);
-      
+
       const firebaseToken = await verifyOTP(otpString);
       console.log('✅ OTP verified, token received');
-      
+
       console.log('📤 Sending to backend...');
       const user = await authService.authenticateWithOTP(
         firebaseToken,
         fullName.trim()
       );
-      
+
       console.log('✅ Account created:', user);
-      
+
       // Save user data
       localStorage.setItem('user', JSON.stringify(user));
       localStorage.setItem('firebaseToken', firebaseToken);
-      
+
       alert(`Welcome, ${user.name || 'User'}!`);
       // TODO: Navigate to home
       // navigate('/home');
@@ -83,16 +82,16 @@ const CreateAccountContainer: React.FC = () => {
     }
   };
 
-  const handleResendOTP = async () => {
-    setOtp(Array(6).fill(''));
-    await handleSendOTP();
-  };
+  // const handleResendOTP = async () => {
+  //   setOtp(Array(6).fill(''));
+  //   await handleSendOTP();
+  // };
 
   return (
     <div>
       {/* Invisible reCAPTCHA container */}
       <div id="recaptcha-container"></div>
-      
+
       {step === 'signup' ? (
         <CreateAccountView
           fullName={fullName}
@@ -122,14 +121,14 @@ const CreateAccountContainer: React.FC = () => {
           onLoginClick={() => console.log('Go to login')}
         />
       )}
-      
+
       {/* Error Display */}
       {error && (
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
           <p className="text-sm text-red-600">{error}</p>
         </div>
       )}
-      
+
       {/* Loading Indicator */}
       {loading && (
         <div className="mt-4 flex items-center justify-center">

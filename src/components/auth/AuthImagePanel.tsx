@@ -53,11 +53,11 @@ const AuthImagePanel: React.FC<AuthImagePanelProps> = ({ className = '' }) => {
             zIndex: 2,
             filter: 'brightness(1)',
             transition: {
-                x: { type: 'spring', stiffness: 50, damping: 20 },
-                scale: { type: 'spring', stiffness: 80, damping: 25 },
-                rotateY: { type: 'spring', stiffness: 60, damping: 20 },
-                opacity: { duration: 0.6, ease: 'easeOut' },
-                filter: { duration: 0.8, ease: 'easeOut' },
+                x: { type: 'spring' as const, stiffness: 50, damping: 20 },
+                scale: { type: 'spring' as const, stiffness: 80, damping: 25 },
+                rotateY: { type: 'spring' as const, stiffness: 60, damping: 20 },
+                opacity: { duration: 0.6, ease: 'easeOut' as const },
+                filter: { duration: 0.8, ease: 'easeOut' as const },
             },
         },
         // Outgoing slide - moves to left, scales down with depth
@@ -69,11 +69,11 @@ const AuthImagePanel: React.FC<AuthImagePanelProps> = ({ className = '' }) => {
             zIndex: 0,
             filter: 'brightness(0.5)',
             transition: {
-                x: { type: 'spring', stiffness: 50, damping: 25 },
-                scale: { duration: 0.8, ease: [0.32, 0.72, 0, 1] },
-                rotateY: { duration: 0.8, ease: [0.32, 0.72, 0, 1] },
-                opacity: { duration: 0.6, ease: 'easeIn', delay: 0.1 },
-                filter: { duration: 0.6, ease: 'easeIn' },
+                x: { type: 'spring' as const, stiffness: 50, damping: 25 },
+                scale: { duration: 0.8, ease: [0.32, 0.72, 0, 1] as const },
+                rotateY: { duration: 0.8, ease: [0.32, 0.72, 0, 1] as const },
+                opacity: { duration: 0.6, ease: 'easeIn' as const, delay: 0.1 },
+                filter: { duration: 0.6, ease: 'easeIn' as const },
             },
         }),
     };
