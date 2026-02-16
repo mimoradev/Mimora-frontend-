@@ -1,5 +1,4 @@
 node_modules/
-firebase.ts
 dist/
 .env
 .env.local
