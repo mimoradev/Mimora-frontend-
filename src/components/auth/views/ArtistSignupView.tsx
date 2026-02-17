@@ -2206,7 +2206,7 @@ const ArtistSignupView: React.FC = () => {
     const renderPortfolioForm = () => (
         <div className="h-screen bg-white flex overflow-hidden">
             {/* Left side - Form (70%) */}
-            <div className="w-[70%] pl-14 py-6 flex flex-col h-full">
+            <div className="w-[100%] md:w-[70%] pl-14 py-6 flex flex-col h-full">
                 <div className="w-[90%] flex flex-col h-full">
                     {/* Header */}
                     <div className="flex items-center justify-between mb-6 shrink-0">
@@ -2331,7 +2331,7 @@ const ArtistSignupView: React.FC = () => {
             </div>
 
             {/* Right side - Profile Preview (30%) */}
-            <div className="w-[30%] border-l border-gray-200 hidden lg:block">
+            <div className="w-0 md:w-0 md:w-[30%] border-l border-gray-200 hidden lg:block">
                 <div className="h-10 bg-linear-to-b from-pink-100 to-white"></div>
                 <div className="p-6">
                     <ArtistProfilePreview
@@ -2358,7 +2358,7 @@ const ArtistSignupView: React.FC = () => {
     const renderBankDetailsForm = () => (
         <div className="h-screen bg-white flex overflow-hidden">
             {/* Left side - Form (70%) */}
-            <div className="w-[70%] pl-14 py-6 flex flex-col h-full">
+            <div className="w-[100%] md:w-[70%] pl-14 py-6 flex flex-col h-full">
                 <div className="w-[90%] flex flex-col h-full">
                     {/* Header */}
                     <div className="flex items-center justify-between mb-2 shrink-0">
@@ -2510,7 +2510,7 @@ const ArtistSignupView: React.FC = () => {
             </div>
 
             {/* Right side - Profile Preview (30%) */}
-            <div className="w-[30%] border-l border-gray-200 hidden lg:block">
+            <div className="w-0 md:w-[30%] border-l border-gray-200 hidden lg:block">
                 <div className="h-10 bg-linear-to-b from-pink-100 to-white"></div>
                 <div className="p-6">
                     <ArtistProfilePreview
@@ -2535,7 +2535,7 @@ const ArtistSignupView: React.FC = () => {
     const renderBookingModesForm = () => (
         <div className="h-screen bg-white flex overflow-hidden">
             {/* Left side - Form (70%) */}
-            <div className="w-[70%] pl-14 py-6 flex flex-col h-full">
+            <div className="w-[100%] md:w-[70%] pl-14 py-6 flex flex-col h-full">
                 <div className="w-[90%] flex flex-col h-full">
                     {/* Header */}
                     <div className="flex items-center justify-between mb-4 shrink-0">
@@ -3234,7 +3234,7 @@ const ArtistSignupView: React.FC = () => {
             </div>
 
             {/* Right side - Profile Preview (30%) */}
-            <div className="w-[30%] border-l border-gray-200 hidden lg:block">
+            <div className="w-0 md:w-[30%] border-l border-gray-200 hidden lg:block">
                 <div className="h-10 bg-linear-to-b from-pink-100 to-white"></div>
                 <div className="p-6">
                     <ArtistProfilePreview
@@ -3354,7 +3354,7 @@ const ArtistSignupView: React.FC = () => {
     const renderDetailsForm = () => (
         <div className="h-screen bg-white flex overflow-hidden">
             {/* Left side - Form (70%) */}
-            <div className="w-[70%] pl-14 py-6 flex flex-col h-full">
+            <div className="w-[100%] md:w-[70%] pl-14 py-6 flex flex-col h-full">
                 {/* Form container - 80% of left side */}
                 <div className="w-[80%] flex flex-col h-full">
                     {/* Header - Fixed */}
@@ -4015,7 +4015,7 @@ const ArtistSignupView: React.FC = () => {
             </div>
 
             {/* Right side - Profile Preview (30%) */}
-            <div className="w-[30%] border-l border-gray-200 hidden lg:block">
+            <div className="w-0 md:w-[30%] border-l border-gray-200 hidden lg:block">
                 {/* Top gradient section */}
                 <div className="h-10 bg-linear-to-b from-pink-100 to-white"></div>
                 {/* Content */}
