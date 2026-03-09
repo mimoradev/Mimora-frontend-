@@ -1,5 +1,6 @@
 import { API_CONFIG } from '../config/api';
 import type { User, UserLocationUpdate } from '../types/auth.types';
+import type { KYCStartResponse, FaceStartResponse, KYCStatusResponse } from '../components/auth/artist/artist-signup.types';
 import { getCachedLocation } from '../hooks/useGeolocation';
 
 interface EmailOTPSendRequest {
@@ -240,6 +241,78 @@ class AuthService {
 
     return this.fetchJSON('/auth/artist/me', {
       method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  }
+
+  // ===============================
+  // KYC — Start KYC Verification (analyst workflow)
+  // Initiates Meon Aadhaar/PAN verification flow
+  // ===============================
+  async startKYC(artistId: string): Promise<KYCStartResponse> {
+    const token = localStorage.getItem('firebaseToken');
+    if (!token) {
+      throw new Error('Not authenticated. Please log in first.');
+    }
+
+    return this.fetchJSON(`/kyc/start/${artistId}`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  }
+
+  // ===============================
+  // KYC — Start Face/Image Verification
+  // Initiates Meon liveness check with profile pic
+  // ===============================
+  async startFaceVerification(artistId: string): Promise<FaceStartResponse> {
+    const token = localStorage.getItem('firebaseToken');
+    if (!token) {
+      throw new Error('Not authenticated. Please log in first.');
+    }
+
+    return this.fetchJSON(`/kyc/face/${artistId}`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  }
+
+  // ===============================
+  // KYC — Get KYC Status
+  // Polls current verification status
+  // ===============================
+  async getKYCStatus(artistId: string): Promise<KYCStatusResponse> {
+    const token = localStorage.getItem('firebaseToken');
+    if (!token) {
+      throw new Error('Not authenticated. Please log in first.');
+    }
+
+    return this.fetchJSON(`/kyc/status/${artistId}`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  }
+
+  // ===============================
+  // KYC — Retry Failed KYC
+  // Cancels previous attempts and starts fresh
+  // ===============================
+  async retryKYC(artistId: string): Promise<KYCStartResponse> {
+    const token = localStorage.getItem('firebaseToken');
+    if (!token) {
+      throw new Error('Not authenticated. Please log in first.');
+    }
+
+    return this.fetchJSON(`/kyc/retry/${artistId}`, {
+      method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
       },
