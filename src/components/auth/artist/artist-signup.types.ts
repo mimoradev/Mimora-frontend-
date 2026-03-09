@@ -13,7 +13,7 @@ export interface FormData {
     bio: string;
     otp: string;
     // Step 2: Identity Verification
-    kycStatus: 'not_started' | 'pending' | 'in_progress' | 'document_verified' | 'verified' | 'failed';
+    kycStatus: 'not_started' | 'pending' | 'in_progress' | 'document_verified' | 'face_verification_pending' | 'verified' | 'failed' | 'cancelled';
     profilePicUrl: string;
     faceVerified: boolean;
     // Step 3: Professional Info
@@ -173,11 +173,11 @@ export interface KYCStatusResponse {
     username: string;
     kyc_verified: boolean;
     bank_verified: boolean;
-    kyc_status: 'not_started' | 'pending' | 'in_progress' | 'document_verified' | 'verified' | 'failed' | 'cancelled';
+    kyc_status: 'not_started' | 'pending' | 'in_progress' | 'document_verified' | 'face_verification_pending' | 'verified' | 'failed' | 'cancelled';
     kyc_id: string | null;
     document_verified: boolean;
     face_verified: boolean;
-    current_step: 'document' | 'face' | 'complete';
+    current_step: 'document' | 'face' | 'esign' | 'complete';
     verification_details?: Record<string, any>;
     last_updated?: string;
 }

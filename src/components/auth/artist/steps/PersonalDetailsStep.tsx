@@ -337,7 +337,7 @@ const PersonalDetailsStep: React.FC = () => {
                                                     )}
                                                     Retry KYC
                                                 </button>
-                                            ) : formData.kycStatus === 'in_progress' || formData.kycStatus === 'document_verified' || formData.kycStatus === 'pending' ? (
+                                            ) : formData.kycStatus === 'in_progress' || formData.kycStatus === 'document_verified' || formData.kycStatus === 'pending' || formData.kycStatus === 'face_verification_pending' ? (
                                                 <div className="flex items-center gap-2 shrink-0">
                                                     <span className="px-2.5 py-1 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">In Progress</span>
                                                     <button

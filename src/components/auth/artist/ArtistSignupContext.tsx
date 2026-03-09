@@ -497,6 +497,14 @@ export const ArtistSignupProvider: React.FC<{ children: React.ReactNode }> = ({ 
         try {
             setKycLoading(true);
             const status = await authService.getKYCStatus(artistId);
+
+            // Handle cancelled status — reset to not_started
+            if (status.kyc_status === 'cancelled') {
+                setFormData(prev => ({ ...prev, kycStatus: 'not_started' as const }));
+                toast.info('Previous KYC was cancelled. You can start again.');
+                return;
+            }
+
             setFormData(prev => ({
                 ...prev,
                 kycStatus: status.kyc_verified ? 'verified' as const : (status.kyc_status as FormData['kycStatus']) || prev.kycStatus,
@@ -633,16 +641,60 @@ export const ArtistSignupProvider: React.FC<{ children: React.ReactNode }> = ({ 
         }
     }, []); // Run only on mount
 
-    // Once artistId becomes available and we have a pending check, run it
+    // Once artistId becomes available and we have a pending check, poll for status
     useEffect(() => {
         if (pendingKycCheck && artistId) {
-            const timer = setTimeout(() => {
-                handleCheckKYCStatus();
-                setPendingKycCheck(false);
-            }, 1500);
-            return () => clearTimeout(timer);
+            let attempts = 0;
+            const maxAttempts = 6;
+            const pollInterval = 3000; // 3 seconds between polls
+            let cancelled = false;
+
+            const poll = async () => {
+                if (cancelled) return;
+                attempts++;
+                try {
+                    setKycLoading(true);
+                    const status = await authService.getKYCStatus(artistId);
+                    setFormData(prev => ({
+                        ...prev,
+                        kycStatus: status.kyc_verified
+                            ? 'verified' as const
+                            : (status.kyc_status as FormData['kycStatus']) || prev.kycStatus,
+                        faceVerified: status.face_verified,
+                    }));
+
+                    // Stop polling if resolved (not pending/in_progress)
+                    if (status.kyc_status !== 'pending' && status.kyc_status !== 'in_progress') {
+                        setKycLoading(false);
+                        setPendingKycCheck(false);
+                        if (status.kyc_verified) toast.success('KYC verified!');
+                        else if (status.kyc_status === 'document_verified') toast.success('Document verified! Face verification pending.');
+                        else if (status.kyc_status === 'failed') toast.error('KYC verification failed. Please retry.');
+                        return;
+                    }
+
+                    if (attempts < maxAttempts && !cancelled) {
+                        setTimeout(poll, pollInterval);
+                    } else {
+                        setKycLoading(false);
+                        setPendingKycCheck(false);
+                        toast.info('Verification is being processed. Click "Check Status" to see updates.');
+                    }
+                } catch (error) {
+                    console.error('KYC poll error:', error);
+                    setKycLoading(false);
+                    setPendingKycCheck(false);
+                }
+            };
+
+            // Initial delay before first poll (give webhook time to arrive)
+            const timer = setTimeout(poll, 2000);
+            return () => {
+                cancelled = true;
+                clearTimeout(timer);
+            };
         }
-    }, [pendingKycCheck, artistId, handleCheckKYCStatus]);
+    }, [pendingKycCheck, artistId]);
 
     // Auto-fill address from localStorage('userAddress') if available
     useEffect(() => {
