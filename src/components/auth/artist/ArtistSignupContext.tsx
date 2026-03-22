@@ -565,7 +565,7 @@ export const ArtistSignupProvider: React.FC<{ children: React.ReactNode }> = ({ 
         }
         try {
             setFaceVerificationLoading(true);
-            const response = await authService.startFaceVerification(artistId);
+            const response = await authService.startFaceVerification(artistId, formData.profilePicUrl);
 
             if (response.status === 'already_verified' || response.status === 'face_already_verified') {
                 setFormData(prev => ({ ...prev, faceVerified: true }));

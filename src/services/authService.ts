@@ -268,8 +268,9 @@ class AuthService {
   // ===============================
   // KYC — Start Face/Image Verification
   // Initiates Meon liveness check with profile pic
+  // Sends profile_pic_url so backend can save it before calling Meon
   // ===============================
-  async startFaceVerification(artistId: string): Promise<FaceStartResponse> {
+  async startFaceVerification(artistId: string, profilePicUrl?: string): Promise<FaceStartResponse> {
     const token = localStorage.getItem('firebaseToken');
     if (!token) {
       throw new Error('Not authenticated. Please log in first.');
@@ -279,7 +280,11 @@ class AuthService {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify({
+        profile_pic_url: profilePicUrl || null,
+      }),
     });
   }
 
